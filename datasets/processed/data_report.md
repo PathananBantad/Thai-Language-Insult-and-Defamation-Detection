@@ -14,29 +14,29 @@
 | step | rows |
 |---|---|
 | loaded (after label mapping) | 27,862 |
-| + manually labelled rows not in the loaded sources | 27,880 |
-| drop empty text | 27,880 |
-| drop adult-content spam | 27,557 |
-| drop texts shorter than 3 chars after cleaning | 27,526 |
-| deduplicate on normalized text (124 duplicates, 0 conflicting texts dropped) | 27,402 |
+| + manually labelled rows not in the loaded sources | 27,881 |
+| drop empty text | 27,881 |
+| drop adult-content spam | 27,558 |
+| drop texts shorter than 3 chars after cleaning | 27,528 |
+| deduplicate on normalized text (116 duplicates, 0 conflicting texts dropped) | 27,412 |
 
-Manual labels: 81 rows relabelled in place, 18 rows added from `manual_labels.csv`.
+Manual labels: 86 rows relabelled in place, 19 rows added from `manual_labels.csv`.
 Synthetic defamation rows added to **train only**: 296 (validation and test contain real data only).
 
 ## 3. Class distribution (stratified 70/15/15, seed 42)
 
 | split | normal (0) | insult (1) | defamation (2) | total |
 |---|---|---|---|---|
-| train | 11,920 (61.2%) | 7,193 (36.9%) | 364 (1.9%) | 19,477 |
-| validation | 2,554 (62.1%) | 1,541 (37.5%) | 15 (0.4%) | 4,110 |
-| test | 2,555 (62.2%) | 1,542 (37.5%) | 14 (0.3%) | 4,111 |
-| all (real only) | 17,029 (62.1%) | 10,276 (37.5%) | 97 (0.4%) | 27,402 |
+| train | 11,926 (61.2%) | 7,190 (36.9%) | 368 (1.9%) | 19,484 |
+| validation | 2,555 (62.1%) | 1,541 (37.5%) | 16 (0.4%) | 4,112 |
+| test | 2,556 (62.2%) | 1,541 (37.5%) | 15 (0.4%) | 4,112 |
+| all (real only) | 17,037 (62.2%) | 10,272 (37.5%) | 103 (0.4%) | 27,412 |
 
 ## 4. Source x label
 
 | source                |   defamation |   insult |   normal |
 |:----------------------|-------------:|---------:|---------:|
-| HateThaiSent          |            7 |      522 |     4419 |
-| ThaiCyberbullyingLGBT |           53 |     8438 |     7826 |
-| ThaiToxicityTweet     |           17 |     1316 |      827 |
-| WisesightSentiment    |           20 |        0 |     3957 |
+| HateThaiSent          |            7 |      522 |     4420 |
+| ThaiCyberbullyingLGBT |           57 |     8435 |     7831 |
+| ThaiToxicityTweet     |           18 |     1315 |      827 |
+| WisesightSentiment    |           21 |        0 |     3959 |
