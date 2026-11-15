@@ -32,7 +32,9 @@ _TH_MARK = "ะ-ฺเ-๎"  # vowels, tone marks, ๆ etc.
 _SEP = r"[\-\._\*\s/|+~,]+"
 
 # A "letter unit" is one Thai consonant plus optional marks, or one Latin letter.
-_TH_UNIT = rf"[{_TH_CONS}][{_TH_MARK}]*"
+# Any single Thai letter (consonant, vowel or mark) plus trailing marks, so
+# spelled-out vowels also join: ค-ว-า-ย, ข-โ-ม-ย, ส ั ส.
+_TH_UNIT = rf"[{_TH_CONS}{_TH_MARK}][{_TH_MARK}]*"
 _LAT_UNIT = r"[a-zA-Z]"
 
 # 3+ single letter units separated by separators: ค-ว-ย, ค ว ย, k.u.y
@@ -77,8 +79,17 @@ EUPHEMISM_MAP: dict[str, str] = {
     "ส้นตรีน": "ส้นตีน",
 }
 
-_SAFE_SUBSTRINGS = ("ควัย", "มรึง", "แมร่ง", "เชี้ย", "เหี่ย", "เฮี้ย", "ส้นตรีน", "เเม่ง", "เหี้ยะ")
-_SAFE_SUBSTR_RE = re.compile("|".join(sorted(map(re.escape, _SAFE_SUBSTRINGS), key=len, reverse=True)))
+_SAFE_SUBSTRINGS = ("ควัย", "มรึง", "แมร่ง", "เชี้ย", "เหี่ย", "เฮี้ย", "ส้นตรีน", "เเม่ง", "เหี้ยะ", "กระหรี่")
+_SAFE_SUBSTR_RE = re.compile(
+    "|".join(sorted(map(re.escape, _SAFE_SUBSTRINGS), key=len, reverse=True)) + r"|แม่ม(?!ด|[ะ-ฺ็-๎])"
+)
+# อิ used as a derogatory prefix (อิดอก, อิสัด) -> อี, only before a slur so that
+# words like อิทธิพล / อินเทอร์เน็ต are untouched.
+_I_PREFIX_TARGETS = (
+    "ดอก", "สัส", "สัด", "หอก", "ห่า", "เหี้ย", "เชี่ย", "ควาย", "ควัย", "บ้า", "หมา", "เวร", "ตุ๊ด", "เกย์",
+    "ผี", "เปรต", "ชั่ว", "ร่าน", "แรด", "กะหรี่", "ปลวก", "ส้นตีน", "ตอแหล", "หอย", "เลว", "โง่",
+)
+_I_PREFIX_RE = re.compile("อิ(?=" + "|".join(map(re.escape, _I_PREFIX_TARGETS)) + ")")
 
 _KARAOKE_RE = re.compile(
     r"(?<![a-zA-Z])(" + "|".join(sorted(map(re.escape, KARAOKE_MAP), key=len, reverse=True)) + r")(?![a-zA-Z])",
@@ -131,7 +142,7 @@ def _drop_or_keep_one(text: str, m: re.Match) -> str:
     """
     ch = m.group(1)
     before = _TH_WORD_BEFORE.search(text[: m.start()])
-    if not before or not ("ก" <= ch <= "๎"):
+    if ch == "ๆ" or not before or not ("ก" <= ch <= "๎"):
         return ch
     stem = before.group(0)
     dictionary = _thai_dictionary()
@@ -176,6 +187,7 @@ def map_thai_tokens(text: str, use_fuzzy: bool = True, max_distance: int = 1) ->
     # Spellings that never occur inside a real word can be replaced as
     # substrings, which also catches them in unspaced text (อีควัย, มรึงอะ).
     text = _SAFE_SUBSTR_RE.sub(lambda m: EUPHEMISM_MAP[m.group(0)], text)
+    text = _I_PREFIX_RE.sub("อี", text)
 
     dictionary = _thai_dictionary()
     out: list[str] = []
