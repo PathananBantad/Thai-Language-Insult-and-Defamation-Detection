@@ -34,8 +34,6 @@ LABEL_NAMES = {0: "normal", 1: "insult", 2: "defamation"}
 SOURCES: dict[str, dict] = {
     # Thai Toxicity Tweet Corpus: tweets collected with toxic keywords
     "dataset2": {"name": "ThaiToxicityTweet", "map": {"neg": 1, "neu": 0}},
-    # HateThaiSent: hate speech toward migrant workers + sentiment
-    "dataset3": {"name": "HateThaiSent", "map": {"neg": 1, "neu": 0, "pos": 0}},
     # Thai Cyberbullying LGBT
     "dataset5": {"name": "ThaiCyberbullyingLGBT", "map": {"neg": 1, "neu": 0}},
     # Wisesight Sentiment: 'neg' means negative sentiment, NOT insult -> dropped.

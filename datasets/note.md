@@ -4,9 +4,6 @@
 2. [Thai Toxicity Tweet Corpus](https://github.com/tmu-nlp/ThaiToxicityTweetCorpus):
    Thai Toxicity Tweet Corpus is a dataset of Thai tweets collected using 44 toxicity-related keywords and manually annotated for toxic content. It contains around 3,300 tweets (with some missing text), making it suitable for training toxicity detection models in Thai social media. The corpus is hosted on GitHub by tmu-nlp and provides guidelines for human annotation.
 
-3. [HateThaiSent Dataset](https://github.com/dsmlr/HateThaiSent):
-   This dataset includes 7,597 Thai social media messages annotated for both hate speech (Hatespeech/Nonhatespeech) and sentiment (Positive/Neutral/Negative), supporting multi-task models for improved hate detection.
-
 4. [Thai Sentiment Analysis Dataset](https://github.com/PyThaiNLP/thai-sentiment-analysis-dataset):
    Thai Sentiment Analysis Dataset is a collection of Thai social media texts labeled for sentiment analysis across categories like neutral, positive, and negative. Released by PyThaiNLP, it includes train/test splits, tokenization samples, and is under CC0 license for Thai text classification benchmarks.
 
