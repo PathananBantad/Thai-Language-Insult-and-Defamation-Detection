@@ -28,6 +28,7 @@ sys.path.insert(0, str(ROOT))
 from src.thai_mod_api.text_processing import preprocess  # noqa: E402
 
 LABEL_NAMES = {0: "normal", 1: "insult", 2: "defamation"}
+TWO_CLASS_NAMES = {0: "insult", 1: "defamation"}
 
 # Source datasets and how their original labels map to ours.
 # None = drop rows with that original label.
@@ -125,11 +126,12 @@ def split(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     return train, val, test
 
 
-def distribution_table(parts: dict[str, pd.DataFrame]) -> list[str]:
-    lines = ["| split | normal (0) | insult (1) | defamation (2) | total |", "|---|---|---|---|---|"]
+def distribution_table(parts: dict[str, pd.DataFrame], names: dict[int, str] = LABEL_NAMES) -> list[str]:
+    keys = sorted(names)
+    lines = ["| split | " + " | ".join(f"{names[k]} ({k})" for k in keys) + " | total |", "|---" * (len(keys) + 2) + "|"]
     for name, part in parts.items():
         c = part["label"].value_counts()
-        cells = [f"{c.get(k, 0):,} ({c.get(k, 0) / len(part):.1%})" for k in (0, 1, 2)]
+        cells = [f"{c.get(k, 0):,} ({c.get(k, 0) / len(part):.1%})" for k in keys]
         lines.append(f"| {name} | " + " | ".join(cells) + f" | {len(part):,} |")
     return lines
 
@@ -142,6 +144,8 @@ def main() -> None:
     ap.add_argument("--synthetic", type=Path, default=ROOT / "datasets" / "annotation" / "synthetic_defamation.csv",
                     help="synthetic defamation rows, added to TRAIN only")
     ap.add_argument("--no-synthetic", action="store_true")
+    ap.add_argument("--two-class", action="store_true",
+                    help="insult (0) vs defamation (1) only, as in the proposal; normal texts are dropped")
     ap.add_argument("--no-fuzzy", action="store_true", help="skip edit-distance correction (faster)")
     args = ap.parse_args()
 
@@ -171,7 +175,15 @@ def main() -> None:
     df, n_dupes, n_conflict = resolve_duplicates(df)
     steps.append((f"deduplicate on normalized text ({n_dupes:,} duplicates, {n_conflict:,} conflicting texts dropped)", len(df)))
 
-    df["label_name"] = df["label"].map(LABEL_NAMES)
+    names = LABEL_NAMES
+    if args.two_class:
+        # Proposal scope: classify harmful texts into insult vs defamation.
+        before = len(df)
+        df = df[df["label"] != 0].copy()
+        df["label"] = df["label"] - 1
+        names = TWO_CLASS_NAMES
+        steps.append((f"two-class mode: drop normal texts ({before - len(df):,} rows)", len(df)))
+    df["label_name"] = df["label"].map(names)
     train, val, test = split(df)
 
     n_synth = 0
@@ -180,7 +192,9 @@ def main() -> None:
         syn = pd.DataFrame({"text_raw": syn["text"], "label": syn["label"].astype(int), "source": "Synthetic"})
         syn["text_norm"] = [preprocess(t, use_fuzzy=not args.no_fuzzy) for t in syn["text_raw"]]
         syn = syn[~syn["text_norm"].isin(df["text_norm"])].drop_duplicates("text_norm")
-        syn["label_name"] = syn["label"].map(LABEL_NAMES)
+        if args.two_class:
+            syn["label"] = syn["label"] - 1
+        syn["label_name"] = syn["label"].map(names)
         n_synth = len(syn)
         train = pd.concat([train, syn], ignore_index=True).sample(frac=1, random_state=SEED)
 
@@ -196,7 +210,7 @@ def main() -> None:
                f"Synthetic defamation rows added to **train only**: {n_synth:,} "
                "(validation and test contain real data only).", "",
                "## 3. Class distribution (stratified 70/15/15, seed 42)", ""]
-    report += distribution_table({"train": train, "validation": val, "test": test, "all (real only)": df})
+    report += distribution_table({"train": train, "validation": val, "test": test, "all (real only)": df}, names)
     report += ["", "## 4. Source x label", "", df.pivot_table(index="source", columns="label_name",
                values="text_norm", aggfunc="count", fill_value=0).to_markdown()]
     (args.out_dir / "data_report.md").write_text("\n".join(report) + "\n", encoding="utf-8")

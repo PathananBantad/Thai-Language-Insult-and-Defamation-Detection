@@ -1,7 +1,8 @@
 """Score the fine-tuned WangchanBERTa on the evasion robustness set.
 
 Usage:
-    python scripts/evaluate_bert_evasion.py   # -> docs/reports/bert_evasion.json
+    python scripts/evaluate_bert_evasion.py               # 3-class model -> docs/reports/bert_evasion.json
+    python scripts/evaluate_bert_evasion.py --two-class   # 2-class model -> docs/reports/bert_evasion_2class.json
 """
 
 from __future__ import annotations
@@ -19,9 +20,10 @@ sys.path.insert(0, str(ROOT))
 
 from src.thai_mod_api.text_processing import preprocess  # noqa: E402
 
-MODEL_DIR = ROOT / "models" / "candidates" / "wangchanberta_3class"
+TWO = "--two-class" in sys.argv
+MODEL_DIR = ROOT / "models" / "candidates" / ("wangchanberta_2class" if TWO else "wangchanberta_3class")
 EVASION = ROOT / "datasets" / "annotation" / "evasion_testset.csv"
-OUT = ROOT / "docs" / "reports" / "bert_evasion.json"
+OUT = ROOT / "docs" / "reports" / ("bert_evasion_2class.json" if TWO else "bert_evasion.json")
 
 
 def main() -> None:
@@ -31,6 +33,9 @@ def main() -> None:
     model.to(device)
 
     df = pd.read_csv(EVASION)
+    if TWO:  # insult (1) / defamation (2) rows only, relabelled to 0 / 1
+        df = df[df["label"] != 0].reset_index(drop=True)
+        df["label"] = df["label"] - 1
     texts = [preprocess(t) for t in df["text"]]
     with torch.no_grad():
         enc = tok(texts, padding=True, truncation=True, max_length=128, return_tensors="pt").to(device)
