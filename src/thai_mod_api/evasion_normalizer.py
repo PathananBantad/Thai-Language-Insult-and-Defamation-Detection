@@ -22,7 +22,30 @@ import re
 from functools import lru_cache
 from pathlib import Path
 
-from rapidfuzz.distance import Levenshtein
+try:
+    from rapidfuzz.distance import Levenshtein
+except ImportError:
+    class Levenshtein:  # type: ignore
+        @staticmethod
+        def distance(s1: str, s2: str, score_cutoff: int | None = None) -> int:
+            if s1 == s2:
+                return 0
+            if len(s1) < len(s2):
+                s1, s2 = s2, s1
+            if not s2:
+                return len(s1)
+            previous_row = list(range(len(s2) + 1))
+            for i, c1 in enumerate(s1):
+                current_row = [i + 1]
+                for j, c2 in enumerate(s2):
+                    insertions = previous_row[j + 1] + 1
+                    deletions = current_row[j] + 1
+                    substitutions = previous_row[j] + (c1 != c2)
+                    current_row.append(min(insertions, deletions, substitutions))
+                if score_cutoff is not None and min(current_row) > score_cutoff:
+                    return score_cutoff + 1
+                previous_row = current_row
+            return previous_row[-1]
 
 # ---------------------------------------------------------------------------
 # Character classes
@@ -228,3 +251,47 @@ def find_evasions(text: str) -> list[tuple[str, str]]:
         if norm != chunk:
             changes.append((chunk, norm))
     return changes
+
+
+def find_evasion_spans(text: str) -> list[dict[str, Any]]:
+    """Find character spans in raw text where evasion normalization applies."""
+    if not isinstance(text, str) or not text:
+        return []
+    spans: list[dict[str, Any]] = []
+
+    # 1. Spaced letters (Thai and Latin)
+    for pattern in (_SPACED_TH_PUNCT, _SPACED_TH, _SPACED_LAT):
+        for m in pattern.finditer(text):
+            raw = m.group(0)
+            norm = _SEP_RE.sub("", raw)
+            if norm != raw:
+                spans.append({"raw": raw, "normalized": norm, "start": m.start(), "end": m.end(), "type": "spaced_letters"})
+
+    # 2. Repeated characters
+    for m in _REPEAT_CHAR.finditer(text):
+        raw = m.group(0)
+        norm = _drop_or_keep_one(text, m)
+        if norm != raw:
+            spans.append({"raw": raw, "normalized": norm, "start": m.start(), "end": m.end(), "type": "character_elongation"})
+
+    # 3. Karaoke slurs
+    for m in _KARAOKE_RE.finditer(text):
+        raw = m.group(0)
+        norm = KARAOKE_MAP.get(raw.lower(), raw)
+        if norm != raw:
+            spans.append({"raw": raw, "normalized": norm, "start": m.start(), "end": m.end(), "type": "karaoke_slur"})
+
+    # 4. Safe substring euphemisms
+    for m in _SAFE_SUBSTR_RE.finditer(text):
+        raw = m.group(0)
+        norm = EUPHEMISM_MAP.get(raw, raw)
+        if norm != raw:
+            spans.append({"raw": raw, "normalized": norm, "start": m.start(), "end": m.end(), "type": "euphemism"})
+
+    # Sort by start position and deduplicate overlapping
+    spans.sort(key=lambda s: s["start"])
+    deduped: list[dict[str, Any]] = []
+    for s in spans:
+        if not any(not (s["end"] <= d["start"] or s["start"] >= d["end"]) for d in deduped):
+            deduped.append(s)
+    return deduped

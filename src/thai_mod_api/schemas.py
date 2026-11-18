@@ -28,7 +28,53 @@ class BatchPredictRequest(BaseModel):
 class BinaryInsultDefamationRequest(BaseModel):
     # Empty values are accepted here so the binary service can return an
     # explicit abstention result rather than silently coercing the input.
-    text: str = Field(..., max_length=5000, description="Raw text for Insult/Defamation screening")
+    text: str = Field(default="", max_length=5000, description="Raw text for Insult/Defamation screening")
+
+
+class TargetEntity(BaseModel):
+    text: str
+    type: str
+    start: int
+    end: int
+
+
+class TargetInfo(BaseModel):
+    status: str
+    entities: List[TargetEntity] = Field(default_factory=list)
+
+
+class AllegationCue(BaseModel):
+    text: str = ""
+    category: str = ""
+
+
+class AllegationAnalysisResult(BaseModel):
+    result: str
+    hedged: bool = False
+    cues: List[AllegationCue] = Field(default_factory=list)
+    rule_based_only: bool = True
+
+
+class EvidenceSpan(BaseModel):
+    kind: str
+    text: str
+    start: int
+    end: int
+    source_text: str = "raw"
+
+
+class BinaryInsultDefamationResponse(BaseModel):
+    status: str
+    reason: Optional[str] = None
+    predicted_label: Optional[str] = None
+    probabilities: Optional[dict[str, float]] = None
+    confidence: Optional[float] = None
+    target: TargetInfo
+    allegation_analysis: AllegationAnalysisResult
+    evidence_spans: List[EvidenceSpan] = Field(default_factory=list)
+    highlighting_note: Optional[str] = None
+    explanation: str
+    disclaimer: str
 
 
 class PredictionResponse(BaseModel):

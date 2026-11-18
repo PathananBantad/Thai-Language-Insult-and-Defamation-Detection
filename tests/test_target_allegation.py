@@ -19,6 +19,7 @@ def _types(text):
         ("ครูวิชัยแอบมีเมียน้อย", ("ครูวิชัย", "named")),
         ("ได้ยินว่าพี่ตั้มติดยา", ("พี่ตั้ม", "named")),
         ("ร้านนี้ขายของปลอม", ("ร้านนี้", "reference")),
+        ("บริษัทการบินไทยโกงเงิน", ("บริษัทการบินไทย", "organization")),
         ("มึงขโมยของกู", ("มึง", "addressee")),
         ("อิตุ๊ดนี่โกงกู", ("อิตุ๊ด", "slur")),
     ],
@@ -72,3 +73,29 @@ def test_analyze_defamation_risk():
 def test_analyze_explanation_is_thai_text():
     r = analyze("ครูวิชัยแอบมีเมียน้อย")
     assert "ครูวิชัย" in r["explanation"] and "เมียน้อย" in r["explanation"]
+
+
+def test_complex_negation_ignored():
+    assert not analyze_allegation("เขาไม่ได้คิดจะโกงเงินใคร")["detected"]
+    assert not analyze_allegation("ฉันไม่เคยยักยอกเงิน")["detected"]
+
+
+def test_classify_target_conservative():
+    from src.thai_mod_api.target_extractor import classify_target
+
+    # Pronouns only -> Unknown
+    assert classify_target("มึงมันแย่มาก")["status"] == "Unknown"
+    assert classify_target("พวกมันเลว")["status"] == "Unknown"
+    # Specific person / mention / org -> Identified
+    assert classify_target("@user_a โกงเงิน")["status"] == "Identified"
+    assert classify_target("หมอสมชายขโมยของ")["status"] == "Identified"
+    assert classify_target("บริษัทการบินไทยโกง")["status"] == "Identified"
+
+
+def test_find_evasion_spans():
+    from src.thai_mod_api.evasion_normalizer import find_evasion_spans
+
+    spans = find_evasion_spans("มึงมันค-ว-ย kuy")
+    assert any(s["type"] == "spaced_letters" and s["normalized"] == "ควย" for s in spans)
+    assert any(s["type"] == "karaoke_slur" and s["normalized"] == "ควย" for s in spans)
+

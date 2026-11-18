@@ -38,7 +38,7 @@ INSULT_ONLY = ("ขี้โกง", "ตอแหล", "ชาติชู้",
 HEDGES = ("ได้ยินมาว่า", "ได้ข่าวว่า", "ข่าวว่า", "เขาว่า", "เค้าว่า", "ลือกันว่า", "มีคนบอกว่า", "จริงป่ะ", "จริงไหม",
           "จริงมั้ย", "รู้ยัง", "แฉ", "เตือนภัย")
 # Negations right before an allegation ("ไม่ได้โกง") cancel it
-_NEG_RE = re.compile(r"(ไม่ได้|ไม่เคย|ไม่ได้ไป|ไม่)\s?$")
+_NEG_RE = re.compile(r"(ไม่ได้|ไม่เคย|ไม่ได้ไป|ไม่คิดจะ|มิได้|หาได้|มิเคย|ไม่)\s?(คิดจะ|ตั้งใจ|ยอมรับว่า)?\s?$")
 
 _ALL = sorted(((w, cat) for cat, ws in ALLEGATIONS.items() for w in ws), key=lambda x: len(x[0]), reverse=True)
 _ALLEG_RE = re.compile("|".join(re.escape(w) for w, _ in _ALL))
@@ -53,7 +53,7 @@ def _find(text: str) -> list[dict]:
     for m in _ALLEG_RE.finditer(text):
         if any(s <= m.start() < e for s, e in insult_spans):  # "ขี้โกง" is an insult, not "โกง"
             continue
-        if _NEG_RE.search(text[max(0, m.start() - 8): m.start()]):
+        if _NEG_RE.search(text[max(0, m.start() - 15): m.start()]):
             continue
         out.append({"text": m.group(0), "category": _CAT[m.group(0)], "start": m.start(), "end": m.end()})
     return out
@@ -63,11 +63,31 @@ def analyze_allegation(text: str, *, use_fuzzy: bool = True) -> dict:
     if not isinstance(text, str) or not text:
         return {"type": None, "detected": False, "hedged": False, "evidence": []}
     evidence = _find(text)
-    if not evidence:  # try the normalized text (catches โ-ก-ง); spans are then not mappable
-        evidence = [
-            dict(e, start=None, end=None)
-            for e in _find(normalize_evasion(text, use_fuzzy=use_fuzzy))
-        ]
+    if not evidence:
+        # Try finding in normalized evasion text
+        norm_text = normalize_evasion(text, use_fuzzy=use_fuzzy)
+        norm_evidence = _find(norm_text)
+        if norm_evidence:
+            from .evasion_normalizer import find_evasion_spans
+
+            ev_spans = find_evasion_spans(text)
+            evidence = []
+            for e in norm_evidence:
+                matched_span = next((s for s in ev_spans if e["text"] in s["normalized"]), None)
+                if matched_span:
+                    evidence.append({
+                        "text": matched_span["raw"],
+                        "category": e["category"],
+                        "start": matched_span["start"],
+                        "end": matched_span["end"],
+                    })
+                else:
+                    evidence.append({
+                        "text": e["text"],
+                        "category": e["category"],
+                        "start": None,
+                        "end": None,
+                    })
     insult = bool(_INSULT_RE.search(text))
     if evidence:
         kind = "factual_claim"
@@ -87,7 +107,7 @@ def analyze(text: str) -> dict:
     """Targets + allegation + a rule-based defamation-risk flag with explanation."""
     targets = extract_targets(text)
     allegation = analyze_allegation(text)
-    identified = [t for t in targets if t["type"] in {"mention", "named", "reference"}]
+    identified = [t for t in targets if t["type"] in {"mention", "named", "organization", "reference"}]
     addressed = [t for t in targets if t["type"] in {"addressee", "slur", "third"}]
     risk = allegation["detected"] and bool(identified or addressed)
 

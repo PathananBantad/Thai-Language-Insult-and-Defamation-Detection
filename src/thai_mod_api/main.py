@@ -26,6 +26,7 @@ from .schemas import (
     BatchPredictRequest,
     BatchPredictionResponse,
     BinaryInsultDefamationRequest,
+    BinaryInsultDefamationResponse,
     LoginRequest,
     PredictRequest,
     PredictionResponse,
@@ -510,30 +511,66 @@ async def batch_predict(payload: BatchPredictRequest, request: Request):
     return {"predictions": predictions}
 
 
-@app.post("/api/binary/insult-defamation/predict")
+@app.post("/api/binary/insult-defamation/predict", response_model=BinaryInsultDefamationResponse)
 async def predict_binary_insult_defamation(payload: BinaryInsultDefamationRequest, request: Request):
-    """Opt-in endpoint for a completed binary experiment artifact.
+    """Binary Insult vs Defamation screening endpoint with target and allegation cues.
 
-    The existing toxicity endpoints and model selection are not changed. Set
-    THAI_MOD_BINARY_MODEL_DIR to a completed experiment directory to enable it.
+    Defaults to WangchanBERTa V2 experiment artifact under models/experiments/binary_insult_defamation_v2/wangchanberta_v2.
+    Supports THAI_MOD_BINARY_MODEL_DIR environment override, and falls back to ComplementNB if transformer loading fails.
     """
     global _binary_prediction_service
     if PROTECT_ANALYZER:
         _require_api_auth(request)
-    model_dir = os.getenv("THAI_MOD_BINARY_MODEL_DIR", "").strip()
-    if not model_dir:
+
+    override_dir = os.getenv("THAI_MOD_BINARY_MODEL_DIR", "").strip()
+    primary_dir = Path(override_dir) if override_dir else PROJECT_ROOT / "models" / "experiments" / "binary_insult_defamation_v2" / "wangchanberta_v2"
+    fallback_dir = PROJECT_ROOT / "models" / "experiments" / "binary_insult_defamation_v2" / "complement_nb"
+
+    if _binary_prediction_service is None:
+        with _binary_prediction_service_lock:
+            if _binary_prediction_service is None:
+                # 1. Try primary (WangchanBERTa V2 or override)
+                if primary_dir.exists() and (primary_dir / "metadata.json").exists():
+                    try:
+                        _binary_prediction_service = BinaryPredictionService.load(primary_dir)
+                    except Exception:
+                        pass
+                # 2. Try fallback (ComplementNB)
+                if _binary_prediction_service is None and fallback_dir.exists() and (fallback_dir / "metadata.json").exists():
+                    try:
+                        _binary_prediction_service = BinaryPredictionService.load(fallback_dir)
+                    except Exception:
+                        pass
+
+    if _binary_prediction_service is None:
         raise HTTPException(
             status_code=503,
-            detail="Binary Insult/Defamation model is not configured; set THAI_MOD_BINARY_MODEL_DIR.",
+            detail=(
+                "Binary Insult/Defamation model could not be loaded. Please ensure "
+                "models/experiments/binary_insult_defamation_v2/wangchanberta_v2 or complement_nb is present."
+            ),
         )
+
     try:
-        if _binary_prediction_service is None:
-            with _binary_prediction_service_lock:
-                if _binary_prediction_service is None:
-                    _binary_prediction_service = BinaryPredictionService.load(Path(model_dir))
         return _binary_prediction_service.predict(payload.text)
     except Exception as exc:
-        raise HTTPException(status_code=503, detail=f"Binary model could not be loaded or used: {exc}") from exc
+        raise HTTPException(status_code=500, detail=f"Binary prediction failed: {exc}") from exc
+
+
+@app.get("/api/binary/insult-defamation/info")
+async def binary_model_info():
+    """Return metadata about the active Binary Insult vs Defamation model."""
+    override_dir = os.getenv("THAI_MOD_BINARY_MODEL_DIR", "").strip()
+    primary_dir = Path(override_dir) if override_dir else PROJECT_ROOT / "models" / "experiments" / "binary_insult_defamation_v2" / "wangchanberta_v2"
+    fallback_dir = PROJECT_ROOT / "models" / "experiments" / "binary_insult_defamation_v2" / "complement_nb"
+    active_dir = primary_dir if (primary_dir / "metadata.json").exists() else fallback_dir
+    if not (active_dir / "metadata.json").exists():
+        return {"status": "unavailable", "default_model": "WangchanBERTa V2"}
+    try:
+        data = json.loads((active_dir / "metadata.json").read_text(encoding="utf-8"))
+        return {"status": "ready", "active_model_dir": str(active_dir.relative_to(PROJECT_ROOT)), **data}
+    except Exception as exc:
+        return {"status": "error", "detail": str(exc)}
 
 
 @app.get("/api/admin/overview")

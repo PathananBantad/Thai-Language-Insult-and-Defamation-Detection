@@ -1361,3 +1361,218 @@ pre {
     padding: 12px;
   }
 }
+
+/* -------------------------------------------------------------------------
+   Binary Insult & Defamation Styles (Slide 5 Workflow)
+------------------------------------------------------------------------- */
+.result-banner.defamation {
+  background: linear-gradient(135deg, rgba(80, 20, 30, 0.96), rgba(30, 10, 18, 0.98));
+  border-color: rgba(255, 81, 106, 0.5);
+}
+
+.result-banner.insult {
+  background: linear-gradient(135deg, rgba(80, 50, 15, 0.96), rgba(30, 20, 10, 0.98));
+  border-color: rgba(255, 175, 50, 0.5);
+}
+
+.result-banner.abstained {
+  background: linear-gradient(135deg, rgba(40, 45, 65, 0.96), rgba(20, 24, 38, 0.98));
+  border-color: rgba(140, 155, 190, 0.4);
+}
+
+.result-action.defamation {
+  background: rgba(255, 81, 106, 0.2);
+  border-color: #ff516a;
+  color: #ff8e9b;
+}
+
+.result-action.insult {
+  background: rgba(255, 175, 50, 0.2);
+  border-color: #ffaf32;
+  color: #ffc875;
+}
+
+.result-action.abstained {
+  background: rgba(140, 155, 190, 0.2);
+  border-color: #8c9bbe;
+  color: #b0c0e0;
+}
+
+.evidence-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+@media (max-width: 768px) {
+  .evidence-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.evidence-card {
+  padding: 14px;
+  background: rgba(18, 25, 44, 0.85);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.evidence-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.evidence-header strong {
+  font-size: 1.05rem;
+  font-family: var(--font-display);
+}
+
+.tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 28px;
+  align-items: center;
+}
+
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  border-radius: 4px;
+  line-height: 1.2;
+}
+
+.tag-pill.tag-target {
+  background: rgba(77, 142, 255, 0.2);
+  border: 1px solid rgba(77, 142, 255, 0.5);
+  color: #a6c8ff;
+}
+
+.tag-pill.tag-allegation {
+  background: rgba(255, 81, 106, 0.2);
+  border: 1px solid rgba(255, 81, 106, 0.5);
+  color: #ff9ca7;
+}
+
+.placeholder-text {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-style: italic;
+}
+
+.explanation-section {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.explanation-box {
+  margin: 0;
+  padding: 12px 14px;
+  background: rgba(15, 22, 38, 0.9);
+  border-left: 3px solid var(--primary);
+  border-top: 1px solid var(--border-soft);
+  border-right: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
+  color: var(--text);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.highlight-section {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.highlight-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.legend-pills {
+  display: flex;
+  gap: 6px;
+}
+
+.legend-pill {
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.legend-pill.hl-target {
+  background: rgba(77, 142, 255, 0.35);
+  color: #a6c8ff;
+  border: 1px solid rgba(77, 142, 255, 0.6);
+}
+
+.legend-pill.hl-allegation {
+  background: rgba(255, 81, 106, 0.35);
+  color: #ff9ca7;
+  border: 1px solid rgba(255, 81, 106, 0.6);
+}
+
+.highlighted-display {
+  padding: 14px;
+  background: rgba(10, 15, 28, 0.95);
+  border: 1px solid var(--border);
+  min-height: 60px;
+  line-height: 1.8;
+  font-size: 0.95rem;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+mark.hl-target {
+  background: rgba(77, 142, 255, 0.35);
+  color: #d0e2ff;
+  border-bottom: 2px solid #4d8eff;
+  border-radius: 2px;
+  padding: 1px 4px;
+}
+
+mark.hl-allegation {
+  background: rgba(255, 81, 106, 0.35);
+  color: #ffd0d5;
+  border-bottom: 2px solid #ff516a;
+  border-radius: 2px;
+  padding: 1px 4px;
+}
+
+.micro-note {
+  margin: 4px 0 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.disclaimer-banner {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: rgba(30, 25, 20, 0.85);
+  border: 1px solid rgba(255, 209, 102, 0.3);
+  border-radius: 4px;
+  font-size: 0.78rem;
+  color: var(--muted-strong);
+  line-height: 1.45;
+}
+
+.disclaimer-banner strong {
+  color: var(--warn);
+}
+

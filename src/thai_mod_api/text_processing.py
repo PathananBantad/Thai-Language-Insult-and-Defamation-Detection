@@ -1,13 +1,24 @@
 from __future__ import annotations
 
 import re
+from typing import Any
 
 import emoji
-import pandas as pd
+
+
+def _is_na(val: Any) -> bool:
+    if val is None:
+        return True
+    try:
+        import pandas as pd
+
+        return bool(pd.isna(val))
+    except ImportError:
+        return isinstance(val, float) and val != val
 
 
 def preprocess_text(text: str) -> str:
-    if pd.isna(text):
+    if _is_na(text):
         return ""
 
     cleaned = str(text)
@@ -44,7 +55,7 @@ def clean_text(text: str) -> str:
     URL / pic links removed, @mentions -> <USER>, '#' stripped from hashtags,
     emoji -> :name:, ASCII lowercased, whitespace collapsed.
     """
-    if text is None or (not isinstance(text, str) and pd.isna(text)):
+    if text is None or (not isinstance(text, str) and _is_na(text)):
         return ""
     cleaned = _PIC_RE.sub(" ", str(text))
     cleaned = preprocess_text(cleaned)  # URLs, emoji, ASCII lowercase

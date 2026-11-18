@@ -1,71 +1,76 @@
 # AGENTS.md
 
-This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
+This file provides architectural guidance and behavioral instructions when working with code in this repository.
 
-## Project Overview
+## 1. Project Overview & Primary Task
 
-THAI-MOD is a multilingual (Thai + English) online toxicity detection system — a binary text classifier (Toxic vs Non-toxic) built as a decision-support tool for content moderators. This is a research/ML project driven primarily through Jupyter notebooks.
+THAI-MOD is an NLP decision-support screening system for Thai cyberbullying content.
+The primary operational task of this project is **Binary Classification: Insult (ดูหมิ่น) vs Defamation (หมิ่นประมาท)** following the Proposed Workflow (Slide 5), complete with Evasion Normalization, Target Identification, Allegation Analysis, and Rule-based Evidence Highlighting.
 
-## Development Environment
+> **Legal Disclaimer:** This system provides preliminary risk screening for content moderators only. It does NOT constitute legal advice or formal judicial determinations.
 
-- **Python**: 3.11.13 (conda environment: `cedt`)
-- **Install dependencies**: `pip install -r requirements.txt`
-- **Key frameworks**: PyTorch, Hugging Face Transformers, scikit-learn, PyThaiNLP
+---
 
-## Project Structure
+## 2. Dataset & Preprocessing Contracts
 
-- `model.ipynb` — Main training pipeline: dataset aggregation, preprocessing, TF-IDF baselines (Logistic Regression, Linear SVC), and transformer fine-tuning
-- `thai-bert.ipynb` — BERT model evaluation and comparison (WangchanBERTa, XLM-RoBERTa, PhayaThaiBERT)
-- `toxicity_detection.ipynb` — Combined full-pipeline notebook with baseline and transformer comparison plus model caching
-- `datasets/` — All data assets (Git LFS tracked via `.gitattributes`)
-  - `dataset[1-8].csv` — Individual source datasets (10 sources total, Thai + English)
-  - `toxic_keywords.csv` — Thai toxic keyword glossary
-  - `exploration/` — EDA notebooks, train/test splits, keyword lists
-- `models/` — Saved model artifacts (gitignored)
-- `src/thai_mod_api/` — Phase 2 FastAPI app, model service, schemas, and static moderator UI
-- `scripts/generate_full_pipeline_notebook.py` — Regenerates `toxicity_detection.ipynb`
+- **Primary Dataset:** `datasets/processed/binary_insult_defamation_v2/`
+  - `train.csv` (7,008 samples)
+  - `validation.csv` (1,474 samples)
+  - `test.csv` (1,470 samples)
+  - Summary: `datasets/processed/binary_insult_defamation_v2/dataset_summary.json`
+- **Label Mapping:**
+  - `0`: **Insult** (ดูหมิ่น)
+  - `1`: **Defamation** (เข้าข่ายหมิ่นประมาท)
+  - Neutral / general non-toxic comments are excluded from this binary task split.
+- **Preprocessing Contract:** `PREPROCESSING_VERSION = "binary_preprocess_v1"` (`src/thai_mod_api/binary_preprocessing.py`)
+  - **`USE_FUZZY = False`**: Fuzzy keyword correction is deliberately turned off to prevent false positives and rewriting of legitimate vocabulary.
+  - **RULE:** Do not alter the preprocessing contract, function names, normalization sequence, or dataset splits without explicit authorization.
 
-## Architecture & ML Pipeline
+---
 
-1. **Data aggregation**: Combines 10 datasets into unified train/test splits with binary toxic/non-toxic labels
-2. **Preprocessing**: Text cleaning, Thai tokenization (PyThaiNLP), emoji handling
-3. **Baselines**: TF-IDF vectorization → Logistic Regression / Linear SVC / XGBoost
-4. **Transformers**: Fine-tuning WangchanBERTa (selected model — best Thai language support with multilingual capability)
-5. **Evaluation**: Prioritizes recall (catching toxic content is more important than precision), uses F1, accuracy, confusion matrices
-6. **Class imbalance**: Handled via imbalanced-learn (SMOTE/resampling techniques)
+## 3. Core Architecture & API Scopes
 
-## Current System Status
+### A. Binary API (Primary Production Path)
+- **Endpoint:** `POST /api/binary/insult-defamation/predict`
+- **Metadata Endpoint:** `GET /api/binary/insult-defamation/info`
+- **Default Model:** `models/experiments/binary_insult_defamation_v2/wangchanberta_v2`
+- **Fallback Model:** `models/experiments/binary_insult_defamation_v2/complement_nb`
+- **Override:** Configurable via `THAI_MOD_BINARY_MODEL_DIR` environment variable.
+- **Scope Gating & Conservative Screening:**
+  - **Conservative Target Identification:** Only specific targets (`mention`, `named`, `organization`, or specific deictic `reference`) qualify as `Identified`. Broad pronouns (`มึง`, `มัน`, `เขา`) or generic slur addresses without an identifiable name or entity do **NOT** establish a target and must result in `target.status = "Unknown"`.
+  - **Abstention Policy:** If an input lacks an identifiable target, lacks an explicit insult or factual allegation cue, or if prediction confidence falls below `MIN_CONFIDENCE = 0.55`, the service must return `status = "abstained"` with a human-review recommendation.
+- **Evidence Spans & Highlighting:**
+  - The returned `evidence_spans` (target and allegation spans) are **Rule-based evidence cues** designed for moderator inspection. They are **NOT** model rationales or neural network attention weights.
 
-- The repository now includes a working Phase 2 app with:
-  - FastAPI backend
-  - moderator UI
-  - cached baseline deployment path
-- The deployed app currently uses `TF-IDF + Logistic Regression (Balanced)` for inference
-- The app exposes:
+### B. Legacy Toxicity API (Preserved Backward Compatibility)
+- **Endpoints:**
   - `GET /api/health`
   - `GET /api/model-info`
-  - `POST /api/predict`
+  - `POST /api/predict` (Toxic vs Non-toxic classification)
   - `POST /api/batch-predict`
-- The app currently does not yet include:
-  - authentication
-  - deployed BERT inference
-  - automated tests
-  - full monitoring/dashboard backend
+- **Service:** `src/thai_mod_api/model_service.py`
+- **RULE:** Preserve all legacy endpoints and behavior. Never break existing routes or tests in `tests/test_api.py`.
 
-## Manual App Check
+---
 
-- Run:
-  - `conda activate cedt`
-  - `pip install -r requirements.txt`
-  - `uvicorn src.thai_mod_api.main:app --reload`
-- Open:
-  - `http://127.0.0.1:8000/`
-  - `http://127.0.0.1:8000/docs`
-- Verify `/api/health` returns `status`, `model_loaded`, and `cache_status`
-- Test sample comments in Thai, English, and code-switching
+## 4. Development Environment & Conventions
 
-## Conventions
+- **Python Version:** 3.11+ / 3.13 (conda env: `cedt` or virtual environment)
+- **Dependencies:** `pip install -r requirements.txt` (Hugging Face Transformers, PyTorch, PyThaiNLP, Scikit-learn, FastAPI, Pydantic, Emoji)
+- **Model Artifacts:** Located under `models/` (gitignored). Do not alter or overwrite completed training artifacts.
+- **PhayaThaiBERT Status:** PhayaThaiBERT was paused and is not evaluated on Dataset V2; do not include it in current binary comparisons or train third-model variants without instruction.
+- **Dataset Constraints:** The test set contains only **14 defamation samples**; class-level metrics for Defamation have high variance and must be reported with explicit acknowledgement of this limitation.
+- **Web Frontend:** Located at `src/thai_mod_api/static/` (`index.html`, `app.js`, `styles.css`), directly integrated with `POST /api/binary/insult-defamation/predict`.
 
-- Notebooks use `cedt` kernel (Python 3.11.13)
-- Dataset files are tracked with Git LFS — run `git lfs pull` after cloning
-- Model artifacts go in `models/` (gitignored, not committed)
+---
+
+## 5. Verification Commands
+
+Run unit and integration tests:
+```bash
+pytest tests/test_target_allegation.py tests/test_binary_preprocessing.py tests/test_binary_inference.py tests/test_binary_metrics.py tests/test_evasion_normalizer.py
+```
+Start development server:
+```bash
+uvicorn src.thai_mod_api.main:app --reload
+```

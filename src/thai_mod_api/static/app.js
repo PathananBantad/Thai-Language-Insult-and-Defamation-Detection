@@ -1,7 +1,5 @@
+// THAI-MOD Forensic Console: Insult & Defamation Detection (Slide 5 Workflow)
 const commentInput = document.getElementById("commentInput");
-const thresholdInput = document.getElementById("thresholdInput");
-const thresholdValue = document.getElementById("thresholdValue");
-const heroThreshold = document.getElementById("heroThreshold");
 const analyzeButton = document.getElementById("analyzeButton");
 const historyList = document.getElementById("historyList");
 const triageBanner = document.getElementById("triageBanner");
@@ -12,17 +10,18 @@ const processingLabel = document.getElementById("processingLabel");
 
 const predictedLabel = document.getElementById("predictedLabel");
 const recommendation = document.getElementById("recommendation");
-const toxicScore = document.getElementById("toxicScore");
+const insultScore = document.getElementById("insultScore");
+const defamationScore = document.getElementById("defamationScore");
 const confidence = document.getElementById("confidence");
-const resultThreshold = document.getElementById("resultThreshold");
-const sourceModel = document.getElementById("sourceModel");
-const reviewToxicButton = document.getElementById("reviewToxicButton");
-const reviewNonToxicButton = document.getElementById("reviewNonToxicButton");
-const reviewStatus = document.getElementById("reviewStatus");
-const riskPercent = document.getElementById("riskPercent");
-const confidencePercent = document.getElementById("confidencePercent");
-const riskBar = document.getElementById("riskBar");
-const confidenceBar = document.getElementById("confidenceBar");
+
+const targetStatus = document.getElementById("targetStatus");
+const targetEntities = document.getElementById("targetEntities");
+const allegationStatus = document.getElementById("allegationStatus");
+const allegationCues = document.getElementById("allegationCues");
+const hedgedBadge = document.getElementById("hedgedBadge");
+const explanationText = document.getElementById("explanationText");
+const highlightedDisplay = document.getElementById("highlightedDisplay");
+const disclaimerText = document.getElementById("disclaimerText");
 
 const modelVersion = document.getElementById("modelVersion");
 const healthStatus = document.getElementById("healthStatus");
@@ -33,73 +32,174 @@ let currentPrediction = null;
 async function ensureAnalyzerAccess() {
   try {
     const response = await fetch("/api/auth/me");
-    if (!response.ok) {
-      return;
-    }
+    if (!response.ok) return;
     const payload = await response.json();
     if (payload.protect_analyzer && !payload.authenticated) {
       window.location.assign("/login?next=/");
     }
   } catch (_error) {
-    // Ignore auth check failures; existing analyzer behavior should continue.
+    // Ignore auth check failures
   }
 }
 
-function setThresholdLabel() {
-  const value = Number(thresholdInput.value).toFixed(2);
-  thresholdValue.textContent = value;
-  heroThreshold.textContent = value;
+function escapeHtml(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
-function getRiskClass(label) {
-  return label === "toxic" ? "risk" : "safe";
+function toPercent(val) {
+  if (val === null || val === undefined || isNaN(val)) return "-";
+  return `${Math.round(Number(val) * 100)}%`;
 }
 
-function getActionLabel(result) {
-  return result.predicted_label === "toxic" ? "Hide / Review" : "Allow";
-}
-
-function toPercent(value) {
-  return `${Math.round(Number(value) * 100)}%`;
-}
-
-function trimText(text, maxLength = 120) {
-  if (!text) {
-    return "-";
-  }
-
+function trimText(text, maxLength = 100) {
+  if (!text) return "-";
   return text.length > maxLength ? `${text.slice(0, maxLength - 1)}...` : text;
 }
 
-function setPrediction(result) {
-  const riskClass = getRiskClass(result.predicted_label);
+function renderHighlightedText(rawText, spans) {
+  if (!rawText) {
+    return '<span class="placeholder-text">ไม่มีข้อความ</span>';
+  }
+  if (!spans || spans.length === 0) {
+    return escapeHtml(rawText);
+  }
+
+  // Filter valid spans that fit within rawText
+  const validSpans = spans
+    .filter((s) => typeof s.start === "number" && typeof s.end === "number" && s.start >= 0 && s.end <= rawText.length && s.start < s.end)
+    .sort((a, b) => a.start - b.start);
+
+  if (validSpans.length === 0) {
+    return escapeHtml(rawText);
+  }
+
+  // Remove overlaps greedily
+  const nonOverlapping = [];
+  let lastEnd = 0;
+  for (const span of validSpans) {
+    if (span.start >= lastEnd) {
+      nonOverlapping.push(span);
+      lastEnd = span.end;
+    }
+  }
+
+  let html = "";
+  let cur = 0;
+  for (const span of nonOverlapping) {
+    if (span.start > cur) {
+      html += escapeHtml(rawText.slice(cur, span.start));
+    }
+    const cls = span.kind === "target_rule" ? "hl-target" : "hl-allegation";
+    const title = span.kind === "target_rule" ? "Target" : "Allegation";
+    html += `<mark class="${cls}" title="${title}">${escapeHtml(rawText.slice(span.start, span.end))}</mark>`;
+    cur = span.end;
+  }
+  if (cur < rawText.length) {
+    html += escapeHtml(rawText.slice(cur));
+  }
+  return html;
+}
+
+function setPrediction(result, rawText) {
   currentPrediction = result;
 
-  predictedLabel.textContent = result.predicted_label;
-  recommendation.textContent = result.recommendation;
-  toxicScore.textContent = toPercent(result.toxic_score);
-  confidence.textContent = toPercent(result.confidence);
-  resultThreshold.textContent = Number(result.threshold).toFixed(2);
-  sourceModel.textContent = result.source_model || "-";
-  riskPercent.textContent = toPercent(result.toxic_score);
-  confidencePercent.textContent = toPercent(result.confidence);
-  riskBar.style.width = toPercent(result.toxic_score);
-  confidenceBar.style.width = toPercent(result.confidence);
+  const isAbstained = result.status === "abstained";
+  const label = result.predicted_label;
 
-  triageBanner.className = `result-banner ${riskClass}`;
-  resultAccent.className = `result-accent ${riskClass}`;
-  actionTag.className = `result-action ${riskClass}`;
-  actionTag.textContent = getActionLabel(result);
-  reviewStatus.textContent = `Ready to save human label for request ${result.request_id.slice(0, 8)}.`;
+  let bannerClass = "neutral";
+  let actionLabel = "Stand by";
+  let recText = "ANALYSIS_COMPLETE";
+
+  if (isAbstained) {
+    bannerClass = "abstained";
+    actionLabel = "Abstained / Review";
+    recText = "HUMAN_REVIEW_RECOMMENDED";
+    predictedLabel.textContent = `Abstained (${result.reason || "out_of_scope"})`;
+  } else if (label === "Defamation") {
+    bannerClass = "defamation";
+    actionLabel = "Defamation Risk";
+    recText = "ESCALATE_LEGAL_REVIEW";
+    predictedLabel.textContent = "Defamation (เข้าข่ายหมิ่นประมาท)";
+  } else if (label === "Insult") {
+    bannerClass = "insult";
+    actionLabel = "Insult Detected";
+    recText = "FLAG_FOR_MODERATION";
+    predictedLabel.textContent = "Insult (ดูหมิ่น/ด่าทอ)";
+  } else {
+    predictedLabel.textContent = label || "-";
+  }
+
+  recommendation.textContent = recText;
+  triageBanner.className = `result-banner ${bannerClass}`;
+  resultAccent.className = `result-accent ${bannerClass}`;
+  actionTag.className = `result-action ${bannerClass}`;
+  actionTag.textContent = actionLabel;
+
+  // Probabilities and confidence
+  if (result.probabilities) {
+    insultScore.textContent = toPercent(result.probabilities.Insult);
+    defamationScore.textContent = toPercent(result.probabilities.Defamation);
+  } else {
+    insultScore.textContent = "-";
+    defamationScore.textContent = "-";
+  }
+  confidence.textContent = toPercent(result.confidence);
+
+  // Target identification
+  if (result.target) {
+    targetStatus.textContent = result.target.status || "Unknown";
+    targetStatus.style.color = result.target.status === "Identified" ? "var(--primary)" : "var(--muted)";
+    if (result.target.entities && result.target.entities.length > 0) {
+      targetEntities.innerHTML = result.target.entities
+        .map((e) => `<span class="tag-pill tag-target">${escapeHtml(e.text)} <small>(${escapeHtml(e.type)})</small></span>`)
+        .join("");
+    } else {
+      targetEntities.innerHTML = '<span class="placeholder-text">ไม่พบเป้าหมายที่ระบุตัวได้</span>';
+    }
+  }
+
+  // Allegation analysis
+  if (result.allegation_analysis) {
+    allegationStatus.textContent = result.allegation_analysis.result || "Unclear";
+    if (result.allegation_analysis.hedged) {
+      hedgedBadge.classList.remove("hidden");
+    } else {
+      hedgedBadge.classList.add("hidden");
+    }
+
+    if (result.allegation_analysis.cues && result.allegation_analysis.cues.length > 0) {
+      allegationCues.innerHTML = result.allegation_analysis.cues
+        .map((c) => `<span class="tag-pill tag-allegation">${escapeHtml(c.text)} <small>[${escapeHtml(c.category)}]</small></span>`)
+        .join("");
+    } else {
+      allegationCues.innerHTML = '<span class="placeholder-text">ไม่พบคำกล่าวหาที่ชัดเจน</span>';
+    }
+  }
+
+  // Explanation
+  explanationText.textContent = result.explanation || "-";
+
+  // Text Evidence Highlighting
+  highlightedDisplay.innerHTML = renderHighlightedText(rawText, result.evidence_spans);
+
+  // Disclaimer
+  if (result.disclaimer) {
+    disclaimerText.textContent = result.disclaimer;
+  }
 }
 
 function renderHistory() {
   historyList.innerHTML = "";
-
   if (recentHistory.length === 0) {
     historyList.innerHTML = `
       <tr class="history-empty">
-        <td colspan="5">No checks yet. Analyze a comment to start the session trail.</td>
+        <td colspan="5">ยังไม่มีประวัติการตรวจสอบ เริ่มทดสอบโดยเลือกตัวอย่างด้านบน หรือพิมพ์ข้อความแล้วกด Analyze</td>
       </tr>
     `;
     return;
@@ -107,40 +207,48 @@ function renderHistory() {
 
   recentHistory.forEach((item) => {
     const row = document.createElement("tr");
-    const riskClass = getRiskClass(item.predicted_label);
+    let badgeClass = "neutral";
+    if (item.predicted_label === "Defamation") badgeClass = "defamation";
+    else if (item.predicted_label === "Insult") badgeClass = "insult";
+    else if (item.status === "abstained") badgeClass = "abstained";
+
+    const displayLabel = item.predicted_label || item.status || "-";
+    const confDisplay = item.confidence ? toPercent(item.confidence) : "-";
 
     row.innerHTML = `
       <td>${new Date(item.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</td>
-      <td><span class="decision-badge ${riskClass}">${item.recommendation}</span></td>
-      <td><span class="label-badge ${riskClass}">${item.predicted_label}</span></td>
-      <td>${toPercent(item.toxic_score)}</td>
-      <td class="history-comment">${trimText(item.text)}</td>
+      <td><span class="decision-badge ${badgeClass}">${escapeHtml(item.status)}</span></td>
+      <td><span class="label-badge ${badgeClass}">${escapeHtml(displayLabel)}</span></td>
+      <td>${confDisplay}</td>
+      <td class="history-comment">${escapeHtml(trimText(item.text))}</td>
     `;
-
     historyList.appendChild(row);
   });
 }
 
 async function loadSystemInfo() {
   try {
-    const [healthResponse, modelInfoResponse] = await Promise.all([
+    const [infoRes, healthRes] = await Promise.all([
+      fetch("/api/binary/insult-defamation/info"),
       fetch("/api/health"),
-      fetch("/api/model-info"),
     ]);
 
-    if (!healthResponse.ok || !modelInfoResponse.ok) {
-      throw new Error("Unable to load system metadata");
+    if (infoRes.ok) {
+      const info = await infoRes.json();
+      modelVersion.textContent = info.model_name || "WangchanBERTa V2";
+    } else {
+      modelVersion.textContent = "WangchanBERTa V2";
     }
 
-    const health = await healthResponse.json();
-    const modelInfo = await modelInfoResponse.json();
-
-    healthStatus.textContent = health.status === "ok" ? "Online" : "Degraded";
-    modelVersion.textContent = modelInfo.model_name;
-    sourceModel.textContent = modelInfo.model_name;
-  } catch (error) {
-    healthStatus.textContent = "Offline";
-    modelVersion.textContent = "Unavailable";
+    if (healthRes.ok) {
+      const health = await healthRes.json();
+      healthStatus.textContent = health.status === "ok" ? "Online" : "Degraded";
+    } else {
+      healthStatus.textContent = "Ready";
+    }
+  } catch (_error) {
+    modelVersion.textContent = "WangchanBERTa V2 (Local)";
+    healthStatus.textContent = "Ready";
   }
 }
 
@@ -152,120 +260,62 @@ async function analyzeComment() {
   }
 
   analyzeButton.disabled = true;
-  analyzeButton.textContent = "Analyzing...";
+  analyzeButton.textContent = "Screening...";
   processingPanel.classList.remove("hidden");
-  processingLabel.textContent = "Deconstructing semantic tokens...";
+  processingLabel.textContent = "Running Evasion Normalizer, Target Extractor & WangchanBERTa Classifier...";
 
-  recommendation.textContent = "RUNNING_ANALYSIS";
-  currentPrediction = null;
-  reviewStatus.textContent = "Analyze a comment before saving a reviewed label.";
-  predictedLabel.textContent = "pending";
-  toxicScore.textContent = "-";
+  recommendation.textContent = "SCREENING_ACTIVE";
+  predictedLabel.textContent = "processing...";
+  insultScore.textContent = "-";
+  defamationScore.textContent = "-";
   confidence.textContent = "-";
-  riskPercent.textContent = "0%";
-  confidencePercent.textContent = "0%";
-  riskBar.style.width = "0%";
-  confidenceBar.style.width = "0%";
   triageBanner.className = "result-banner neutral";
   resultAccent.className = "result-accent";
   actionTag.className = "result-action neutral";
   actionTag.textContent = "Processing";
 
   try {
-    const response = await fetch("/api/predict", {
+    const response = await fetch("/api/binary/insult-defamation/predict", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        text,
-        threshold: Number(thresholdInput.value),
-      }),
+      body: JSON.stringify({ text }),
     });
 
     if (!response.ok) {
-      throw new Error(`Request failed with status ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `Request failed with status ${response.status}`);
     }
 
     const result = await response.json();
-    setPrediction(result);
+    setPrediction(result, text);
 
     recentHistory.unshift({
       ...result,
+      text,
       timestamp: new Date().toISOString(),
     });
-    recentHistory.splice(6);
+    if (recentHistory.length > 8) {
+      recentHistory.pop();
+    }
     renderHistory();
   } catch (error) {
     predictedLabel.textContent = "error";
-    recommendation.textContent = "API_UNAVAILABLE";
+    recommendation.textContent = "API_ERROR";
+    explanationText.textContent = `เกิดข้อผิดพลาดในการเรียก API: ${error.message}`;
     triageBanner.className = "result-banner risk";
     resultAccent.className = "result-accent risk";
     actionTag.className = "result-action risk";
     actionTag.textContent = "Check API";
-    toxicScore.textContent = "-";
-    confidence.textContent = "-";
-    riskPercent.textContent = "-";
-    confidencePercent.textContent = "-";
-    riskBar.style.width = "0%";
-    confidenceBar.style.width = "0%";
   } finally {
     analyzeButton.disabled = false;
-    analyzeButton.textContent = "Analyze Comment";
+    analyzeButton.textContent = "Analyze Comment (ตรวจวิเคราะห์)";
     processingPanel.classList.add("hidden");
   }
 }
 
-function setReviewButtonsDisabled(disabled) {
-  reviewToxicButton.disabled = disabled;
-  reviewNonToxicButton.disabled = disabled;
-}
-
-async function submitReviewedLabel(reviewedLabel) {
-  if (!currentPrediction) {
-    reviewStatus.textContent = "Analyze a comment before saving a reviewed label.";
-    return;
-  }
-
-  try {
-    setReviewButtonsDisabled(true);
-    reviewStatus.textContent = "Saving reviewed example...";
-    const response = await fetch("/api/reviewed-examples", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        request_id: currentPrediction.request_id,
-        text: currentPrediction.text,
-        reviewed_label: reviewedLabel,
-        predicted_label: currentPrediction.predicted_label,
-        toxicity_score: currentPrediction.toxic_score,
-        source_model: currentPrediction.source_model,
-      }),
-    });
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        reviewStatus.textContent = "Login required before saving reviewed examples.";
-        return;
-      }
-      throw new Error(`Save failed with status ${response.status}`);
-    }
-
-    const payload = await response.json();
-    reviewStatus.textContent = `Saved. Reviewed examples: ${Number(payload.reviewed_count).toLocaleString()}.`;
-  } catch (error) {
-    reviewStatus.textContent = String(error);
-  } finally {
-    setReviewButtonsDisabled(false);
-  }
-}
-
-thresholdInput.addEventListener("input", setThresholdLabel);
 analyzeButton.addEventListener("click", analyzeComment);
-reviewToxicButton.addEventListener("click", () => submitReviewedLabel("neg"));
-reviewNonToxicButton.addEventListener("click", () => submitReviewedLabel("neu"));
 
 document.querySelectorAll(".sample-button").forEach((button) => {
   button.addEventListener("click", () => {
@@ -274,7 +324,6 @@ document.querySelectorAll(".sample-button").forEach((button) => {
   });
 });
 
-setThresholdLabel();
 renderHistory();
 ensureAnalyzerAccess();
 loadSystemInfo();

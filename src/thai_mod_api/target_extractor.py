@@ -22,7 +22,11 @@ _TH = "ก-๎"
 # Prefixes that are followed by a person's (nick)name
 _NAME_PREFIXES = (
     "นางสาว", "นาย", "นาง", "คุณ", "ครู", "อาจารย์", "อจ.", "หมอ", "ผอ.", "ผู้ใหญ่", "กำนัน", "ลุง", "ป้า",
-    "น้า", "พี่", "น้อง", "ไอ้", "อี", "อิ", "เจ๊", "เฮีย", "ส.ส.", "นายก",
+    "น้า", "พี่", "น้อง", "ไอ้", "อี", "อิ", "เจ๊", "เฮีย", "ส.ส.", "สว.", "รมต.", "นายก",
+)
+_ORG_PREFIXES = (
+    "บริษัท", "ห้างหุ้นส่วน", "บจก.", "ร้าน", "เพจ", "โรงเรียน", "รร.", "มหาวิทยาลัย", "ม.",
+    "โรงพยาบาล", "รพ.", "คลินิก", "สภ.", "สน.", "ธนาคาร", "กระทรวง", "กรม", "กองบัญชาการ", "พรรค",
 )
 # Words that are NOT names even when they follow a prefix (slurs, identity
 # terms, generic nouns). "อีตุ๊ด" / "ไอ้ควาย" are insults, not identified people.
@@ -32,9 +36,18 @@ _NOT_NAMES = {
     "สัตว์", "ฟาย", "เด็ก", "แก่", "อ้วน", "คน", "พวก", "นี่", "นั่น", "นั้น", "นี้", "ที่", "ไร", "อะไร", "ก็",
     "จะ", "ไม่", "ได้", "มัน", "มา", "ไป", "ห่าน", "ขี้", "หน้า", "ตัว", "ผัว", "เมีย",
 }
+_STOP_ACTION_WORDS = {
+    "โกง", "โกงเงิน", "ขโมย", "ยักยอก", "ฉ้อโกง", "หลอก", "หลอกเงิน", "รับส่วย", "ติดยา", "เสพยา",
+    "ค้ายา", "มีชู้", "เมียน้อย", "มีเมียน้อย", "นอกใจ", "มีกิ๊ก", "แอบ", "ขายตัว", "ลอกงาน",
+    "ก็อปงาน", "เป็น", "มี", "ได้", "จะ", "มา", "ไป", "ทำ", "แฉ", "คือ", "กิน", "ด่า", "ว่า",
+    "เอา", "บอก", "รู้", "เห็น", "ขายของปลอม", "ติดคุก", "หนีหนี้", "ไม่คืน",
+}
 _MENTION_RE = re.compile(r"@[\w\.]+")
 _NAMED_RE = re.compile(
-    "(" + "|".join(sorted(map(re.escape, _NAME_PREFIXES), key=len, reverse=True)) + rf")\s?([{_TH}a-zA-Z]{{2,15}})"
+    "(" + "|".join(sorted(map(re.escape, _NAME_PREFIXES), key=len, reverse=True)) + rf")\s?([{_TH}a-zA-Z]{{2,20}})"
+)
+_ORG_RE = re.compile(
+    "(" + "|".join(sorted(map(re.escape, _ORG_PREFIXES), key=len, reverse=True)) + rf")\s?([{_TH}a-zA-Z0-9_\-]{{2,25}})"
 )
 _REFERENCE_RE = re.compile(
     rf"(?:[{_TH}]{{0,12}}?)(คนนี้|คนนั้น|ร้านนี้|ร้านนั้น|บริษัทนี้|เพจนี้|แม่ค้าคนนี้|หมอคนนี้|ครูคนนี้|ตำรวจคนนี้|โรงพักนี้|รพ\.?[{_TH}A-Za-z]+)"
@@ -53,11 +66,20 @@ class Target:
 
 
 def _split_name(candidate: str) -> str:
-    """Cut a run of Thai characters down to the first word (the name)."""
+    """Cut a run of Thai characters down to the name, stopping before action verbs."""
     from pythainlp.tokenize import word_tokenize
 
     toks = word_tokenize(candidate, engine="newmm")
-    return toks[0] if toks else candidate
+    if not toks:
+        return candidate
+    name_toks: list[str] = []
+    for t in toks:
+        if t in _STOP_ACTION_WORDS or t in _NOT_NAMES:
+            break
+        name_toks.append(t)
+        if len(name_toks) >= 3:
+            break
+    return "".join(name_toks) if name_toks else toks[0]
 
 
 def extract_targets(text: str) -> list[dict]:
@@ -74,6 +96,15 @@ def extract_targets(text: str) -> list[dict]:
 
     for m in _MENTION_RE.finditer(text):
         add(Target(m.group(0), "mention", m.start(), m.end()))
+
+    for m in _ORG_RE.finditer(text):
+        prefix, rest = m.group(1), m.group(2)
+        org_name = rest if rest.isascii() else _split_name(rest)
+        if org_name in _NOT_NAMES or len(org_name) < 2:
+            continue
+        start = m.start()
+        end = m.start(2) + len(org_name)
+        add(Target(text[start:end], "organization", start, end))
 
     for m in _NAMED_RE.finditer(text):
         prefix, rest = m.group(1), m.group(2)
@@ -106,3 +137,19 @@ def has_identifiable_target(text: str) -> bool:
     "อิตุ๊ด" in a post almost always point at one specific person.
     """
     return bool(extract_targets(text))
+
+
+def classify_target(text: str) -> dict[str, Any]:
+    """Conservative target classification for legal risk screening.
+
+    Specific targets (mention, named, organization, reference) qualify as 'Identified'.
+    Broad pronouns ('มึง', 'มัน', 'เขา') or generic slur addresses ('อิตุ๊ด') without a
+    specific entity return 'Unknown'.
+    """
+    targets = extract_targets(text)
+    specific = [t for t in targets if t.get("type") in {"mention", "named", "organization", "reference"}]
+    return {
+        "status": "Identified" if specific else "Unknown",
+        "entities": specific,
+        "all_cues": targets,
+    }
