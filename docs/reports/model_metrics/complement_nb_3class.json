@@ -1,0 +1,330 @@
+{
+  "selection_metric": "validation macro_f1",
+  "selected_alpha": 1.0,
+  "validation_candidates": [
+    {
+      "alpha": 0.1,
+      "validation_metrics": {
+        "accuracy": 0.9090466926070039,
+        "macro_precision": 0.6492952210984583,
+        "macro_recall": 0.6693641731358522,
+        "macro_f1": 0.6578382084680392,
+        "per_class": {
+          "0": {
+            "name": "normal",
+            "precision": 0.9398073836276083,
+            "recall": 0.9166340508806262,
+            "f1": 0.9280760848028532,
+            "support": 2555
+          },
+          "1": {
+            "name": "insult",
+            "precision": 0.8717146433041302,
+            "recall": 0.9039584685269305,
+            "f1": 0.887543803759159,
+            "support": 1541
+          },
+          "2": {
+            "name": "defamation",
+            "precision": 0.13636363636363635,
+            "recall": 0.1875,
+            "f1": 0.15789473684210525,
+            "support": 16
+          }
+        },
+        "confusion_matrix": [
+          [
+            2342,
+            200,
+            13
+          ],
+          [
+            142,
+            1393,
+            6
+          ],
+          [
+            8,
+            5,
+            3
+          ]
+        ],
+        "labels": [
+          0,
+          1,
+          2
+        ],
+        "total_support": 4112
+      }
+    },
+    {
+      "alpha": 0.3,
+      "validation_metrics": {
+        "accuracy": 0.9122081712062257,
+        "macro_precision": 0.6413321018773197,
+        "macro_recall": 0.6725195864038948,
+        "macro_f1": 0.652628383933208,
+        "per_class": {
+          "0": {
+            "name": "normal",
+            "precision": 0.9469420818144998,
+            "recall": 0.915068493150685,
+            "f1": 0.9307324840764332,
+            "support": 2555
+          },
+          "1": {
+            "name": "insult",
+            "precision": 0.8736059479553904,
+            "recall": 0.9149902660609993,
+            "f1": 0.8938193343898574,
+            "support": 1541
+          },
+          "2": {
+            "name": "defamation",
+            "precision": 0.10344827586206896,
+            "recall": 0.1875,
+            "f1": 0.13333333333333333,
+            "support": 16
+          }
+        },
+        "confusion_matrix": [
+          [
+            2338,
+            199,
+            18
+          ],
+          [
+            123,
+            1410,
+            8
+          ],
+          [
+            8,
+            5,
+            3
+          ]
+        ],
+        "labels": [
+          0,
+          1,
+          2
+        ],
+        "total_support": 4112
+      }
+    },
+    {
+      "alpha": 0.5,
+      "validation_metrics": {
+        "accuracy": 0.9139105058365758,
+        "macro_precision": 0.6414608797926243,
+        "macro_recall": 0.6741196013042928,
+        "macro_f1": 0.6530512200630177,
+        "per_class": {
+          "0": {
+            "name": "normal",
+            "precision": 0.9496139780577001,
+            "recall": 0.9146771037181997,
+            "f1": 0.9318181818181818,
+            "support": 2555
+          },
+          "1": {
+            "name": "insult",
+            "precision": 0.8747686613201727,
+            "recall": 0.9201817001946788,
+            "f1": 0.8969006957621758,
+            "support": 1541
+          },
+          "2": {
+            "name": "defamation",
+            "precision": 0.1,
+            "recall": 0.1875,
+            "f1": 0.13043478260869565,
+            "support": 16
+          }
+        },
+        "confusion_matrix": [
+          [
+            2337,
+            198,
+            20
+          ],
+          [
+            116,
+            1418,
+            7
+          ],
+          [
+            8,
+            5,
+            3
+          ]
+        ],
+        "labels": [
+          0,
+          1,
+          2
+        ],
+        "total_support": 4112
+      }
+    },
+    {
+      "alpha": 1.0,
+      "validation_metrics": {
+        "accuracy": 0.9151264591439688,
+        "macro_precision": 0.6465780834679095,
+        "macro_recall": 0.6959040202713141,
+        "macro_f1": 0.6619849784990297,
+        "per_class": {
+          "0": {
+            "name": "normal",
+            "precision": 0.953469387755102,
+            "recall": 0.9142857142857143,
+            "f1": 0.9334665334665335,
+            "support": 2555
+          },
+          "1": {
+            "name": "insult",
+            "precision": 0.8751537515375154,
+            "recall": 0.9234263465282284,
+            "f1": 0.8986422481844016,
+            "support": 1541
+          },
+          "2": {
+            "name": "defamation",
+            "precision": 0.1111111111111111,
+            "recall": 0.25,
+            "f1": 0.15384615384615385,
+            "support": 16
+          }
+        },
+        "confusion_matrix": [
+          [
+            2336,
+            196,
+            23
+          ],
+          [
+            109,
+            1423,
+            9
+          ],
+          [
+            5,
+            7,
+            4
+          ]
+        ],
+        "labels": [
+          0,
+          1,
+          2
+        ],
+        "total_support": 4112
+      }
+    }
+  ],
+  "validation": {
+    "accuracy": 0.9151264591439688,
+    "macro_precision": 0.6465780834679095,
+    "macro_recall": 0.6959040202713141,
+    "macro_f1": 0.6619849784990297,
+    "per_class": {
+      "0": {
+        "name": "normal",
+        "precision": 0.953469387755102,
+        "recall": 0.9142857142857143,
+        "f1": 0.9334665334665335,
+        "support": 2555
+      },
+      "1": {
+        "name": "insult",
+        "precision": 0.8751537515375154,
+        "recall": 0.9234263465282284,
+        "f1": 0.8986422481844016,
+        "support": 1541
+      },
+      "2": {
+        "name": "defamation",
+        "precision": 0.1111111111111111,
+        "recall": 0.25,
+        "f1": 0.15384615384615385,
+        "support": 16
+      }
+    },
+    "confusion_matrix": [
+      [
+        2336,
+        196,
+        23
+      ],
+      [
+        109,
+        1423,
+        9
+      ],
+      [
+        5,
+        7,
+        4
+      ]
+    ],
+    "labels": [
+      0,
+      1,
+      2
+    ],
+    "total_support": 4112
+  },
+  "test": {
+    "accuracy": 0.9102626459143969,
+    "macro_precision": 0.6471073164043034,
+    "macro_recall": 0.7205662170199557,
+    "macro_f1": 0.6669964795851139,
+    "per_class": {
+      "0": {
+        "name": "normal",
+        "precision": 0.95351707116413,
+        "recall": 0.906885758998435,
+        "f1": 0.9296170042109485,
+        "support": 2556
+      },
+      "1": {
+        "name": "insult",
+        "precision": 0.8658536585365854,
+        "recall": 0.9214795587280986,
+        "f1": 0.8928010059729645,
+        "support": 1541
+      },
+      "2": {
+        "name": "defamation",
+        "precision": 0.12195121951219512,
+        "recall": 0.3333333333333333,
+        "f1": 0.17857142857142858,
+        "support": 15
+      }
+    },
+    "confusion_matrix": [
+      [
+        2318,
+        211,
+        27
+      ],
+      [
+        112,
+        1420,
+        9
+      ],
+      [
+        1,
+        9,
+        5
+      ]
+    ],
+    "labels": [
+      0,
+      1,
+      2
+    ],
+    "total_support": 4112
+  }
+}
