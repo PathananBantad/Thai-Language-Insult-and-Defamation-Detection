@@ -25,6 +25,12 @@ class BatchPredictRequest(BaseModel):
     threshold: Optional[float] = Field(default=None, ge=0.0, le=1.0)
 
 
+class BinaryInsultDefamationRequest(BaseModel):
+    # Empty values are accepted here so the binary service can return an
+    # explicit abstention result rather than silently coercing the input.
+    text: str = Field(..., max_length=5000, description="Raw text for Insult/Defamation screening")
+
+
 class PredictionResponse(BaseModel):
     request_id: str
     text: str

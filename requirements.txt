@@ -6,6 +6,7 @@ matplotlib
 seaborn
 pythainlp
 emoji
+rapidfuzz
 xgboost
 imbalanced-learn
 nbformat

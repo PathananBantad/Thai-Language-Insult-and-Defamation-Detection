@@ -18,12 +18,14 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from .model_service import PredictionResult, ToxicityModelService
+from .binary_inference import BinaryPredictionService
 from .monitoring import RecentRequestMonitor
 from .monitoring_service import MonitoringService
 from .schemas import (
     AuthStatusResponse,
     BatchPredictRequest,
     BatchPredictionResponse,
+    BinaryInsultDefamationRequest,
     LoginRequest,
     PredictRequest,
     PredictionResponse,
@@ -35,6 +37,8 @@ from .schemas import (
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 model_service = ToxicityModelService(PROJECT_ROOT)
+_binary_prediction_service: BinaryPredictionService | None = None
+_binary_prediction_service_lock = Lock()
 monitoring_service = MonitoringService(PROJECT_ROOT, model_service.get_monitoring_baseline)
 request_monitor = RecentRequestMonitor(PROJECT_ROOT)
 MODEL_UPDATE_LOG_DIR = PROJECT_ROOT / "models" / "model_update_jobs"
@@ -504,6 +508,32 @@ async def batch_predict(payload: BatchPredictRequest, request: Request):
         _record_prediction(result)
         predictions.append(result.__dict__)
     return {"predictions": predictions}
+
+
+@app.post("/api/binary/insult-defamation/predict")
+async def predict_binary_insult_defamation(payload: BinaryInsultDefamationRequest, request: Request):
+    """Opt-in endpoint for a completed binary experiment artifact.
+
+    The existing toxicity endpoints and model selection are not changed. Set
+    THAI_MOD_BINARY_MODEL_DIR to a completed experiment directory to enable it.
+    """
+    global _binary_prediction_service
+    if PROTECT_ANALYZER:
+        _require_api_auth(request)
+    model_dir = os.getenv("THAI_MOD_BINARY_MODEL_DIR", "").strip()
+    if not model_dir:
+        raise HTTPException(
+            status_code=503,
+            detail="Binary Insult/Defamation model is not configured; set THAI_MOD_BINARY_MODEL_DIR.",
+        )
+    try:
+        if _binary_prediction_service is None:
+            with _binary_prediction_service_lock:
+                if _binary_prediction_service is None:
+                    _binary_prediction_service = BinaryPredictionService.load(Path(model_dir))
+        return _binary_prediction_service.predict(payload.text)
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Binary model could not be loaded or used: {exc}") from exc
 
 
 @app.get("/api/admin/overview")

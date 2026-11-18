@@ -59,12 +59,15 @@ def _find(text: str) -> list[dict]:
     return out
 
 
-def analyze_allegation(text: str) -> dict:
+def analyze_allegation(text: str, *, use_fuzzy: bool = True) -> dict:
     if not isinstance(text, str) or not text:
         return {"type": None, "detected": False, "hedged": False, "evidence": []}
     evidence = _find(text)
     if not evidence:  # try the normalized text (catches โ-ก-ง); spans are then not mappable
-        evidence = [dict(e, start=None, end=None) for e in _find(normalize_evasion(text))]
+        evidence = [
+            dict(e, start=None, end=None)
+            for e in _find(normalize_evasion(text, use_fuzzy=use_fuzzy))
+        ]
     insult = bool(_INSULT_RE.search(text))
     if evidence:
         kind = "factual_claim"
