@@ -1,0 +1,9 @@
+split,true_label,predicted_label,count
+validation,Insult,Insult,1457
+validation,Insult,Defamation,3
+validation,Defamation,Insult,9
+validation,Defamation,Defamation,5
+test,Insult,Insult,1455
+test,Insult,Defamation,1
+test,Defamation,Insult,9
+test,Defamation,Defamation,5
