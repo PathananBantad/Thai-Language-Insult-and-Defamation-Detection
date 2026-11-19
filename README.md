@@ -26,6 +26,7 @@ Label Mapping: `0: Insult (ดูหมิ่น)`, `1: Defamation (หมิ่
 |---|---|---|---|---|---|
 | **WangchanBERTa V2 (Default)** | **0.9932** | **0.7483** | **0.9966** (0.9939 / 0.9993) | **0.5000** (**0.8333** / 0.3571) | **0.9966** |
 | ComplementNB (Fallback) | 0.9898 | 0.6403 | 0.9949 (0.9925 / 0.9973) | 0.2857 (0.4286 / 0.2143) | 0.9409 |
+| PhayaThaiBERT V2 | 0.9973 | 0.9224 | 0.9986 (0.9979 / 0.9993) | 0.8462 (0.9167 / 0.7857) | 0.9991 |
 
 ### ผลลัพธ์บน Validation Set (n = 1,474; Insult = 1,460, Defamation = 14)
 - **WangchanBERTa V2:** Macro-F1 = 0.7252 (Insult F1 = 0.9959, Defamation F1 = 0.4545, Precision = 0.6250, Recall = 0.3571)
@@ -33,7 +34,7 @@ Label Mapping: `0: Insult (ดูหมิ่น)`, `1: Defamation (หมิ่
 
 ### ข้อจำกัดสำคัญของผลการประเมิน (Important Limitations)
 1. **ตัวอย่างคลาสหมิ่นประมาทมีจำกัดมาก:** Test Set มีตัวอย่าง Defamation ในข้อมูลจริงเพียง **14 ตัวอย่าง** (และ Validation Set มี 14 ตัวอย่าง) ทำให้ค่า Recall และ F1-score ของคลาสนี้มีความอ่อนไหวสูงมาก การทายถูก/ผิดเพียง 1-2 ข้อความส่งผลต่อตัวเลขอย่างมีนัยสำคัญ
-2. **สถานะ PhayaThaiBERT:** โมเดล PhayaThaiBERT ยังไม่ได้รับการประเมินบน Dataset V2 และไม่รวมอยู่ในตารางเปรียบเทียบโมเดลในรอบนี้
+2. **PhayaThaiBERT:** เทรนด้วย `scripts/train_phayathaibert_binary.py` (Adafactor, batch 1 × 16, 3 epochs, เลือก epoch 2 ด้วย validation macro-F1 0.7672) ได้ test macro-F1 0.9224 และ Defamation F1 0.8462 (ถูก 11 จาก 14) ซึ่งสูงที่สุด แต่บน validation ได้ Defamation F1 0.5385 ช่องว่างระหว่าง validation กับ test มาจากตัวอย่างที่น้อย จึงควรอ่านผลด้วยความระมัดระวัง ผลอยู่ใน `reports/binary_insult_defamation_v2/evaluations/phayathaibert_v2/` (ไฟล์โมเดลไม่ได้อยู่ใน git)
 3. **Evidence Highlighting:** สแปนคำที่ไฮไลต์บนหน้าเว็บ (เป้าหมายและข้อกล่าวหา) เป็น **Rule-based evidence cues** ที่สกัดจากกฎ Regular Expression เพื่อช่วยผู้ดูแลตัดสินใจ **ไม่ใช่ Attention หรือคำอธิบายเหตุผลภายในของโครงข่ายประสาท (Not model rationales)**
 
 ---
