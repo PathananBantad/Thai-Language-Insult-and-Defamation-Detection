@@ -1,0 +1,254 @@
+[
+  {
+    "epoch": 1,
+    "mean_train_loss": 0.07026637650189667,
+    "validation": {
+      "accuracy": 0.991180461329715,
+      "macro_precision": 0.8292544754135509,
+      "macro_recall": 0.5710861056751467,
+      "macro_f1": 0.6154293856744335,
+      "weighted_f1": 0.9883436309713018,
+      "per_class": {
+        "0": {
+          "name": "Insult",
+          "precision": 0.9918422841604351,
+          "recall": 0.9993150684931507,
+          "f1": 0.9955646537018082,
+          "support": 1460
+        },
+        "1": {
+          "name": "Defamation",
+          "precision": 0.6666666666666666,
+          "recall": 0.14285714285714285,
+          "f1": 0.23529411764705882,
+          "support": 14
+        }
+      },
+      "confusion_matrix": [
+        [
+          1459,
+          1
+        ],
+        [
+          12,
+          2
+        ]
+      ],
+      "classification_report": {
+        "Insult": {
+          "precision": 0.9918422841604351,
+          "recall": 0.9993150684931507,
+          "f1-score": 0.9955646537018082,
+          "support": 1460.0
+        },
+        "Defamation": {
+          "precision": 0.6666666666666666,
+          "recall": 0.14285714285714285,
+          "f1-score": 0.23529411764705882,
+          "support": 14.0
+        },
+        "accuracy": 0.991180461329715,
+        "macro avg": {
+          "precision": 0.8292544754135509,
+          "recall": 0.5710861056751467,
+          "f1-score": 0.6154293856744335,
+          "support": 1474.0
+        },
+        "weighted avg": {
+          "precision": 0.9887537776170751,
+          "recall": 0.991180461329715,
+          "f1-score": 0.9883436309713018,
+          "support": 1474.0
+        }
+      },
+      "labels": [
+        0,
+        1
+      ],
+      "label_names": [
+        "Insult",
+        "Defamation"
+      ],
+      "total_support": 1474,
+      "mean_confidence": 0.9992902990597398,
+      "real_only": {
+        "rows": 1474,
+        "defamation_support": 14,
+        "defamation_recall": 0.14285714285714285,
+        "synthetic_rows_excluded": 0
+      }
+    },
+    "learning_rate": 3.550607287449393e-05,
+    "optimizer_steps": 437,
+    "skipped_optimizer_steps": 1,
+    "seconds": 603.14
+  },
+  {
+    "epoch": 2,
+    "mean_train_loss": 0.022547803402876505,
+    "validation": {
+      "accuracy": 0.9918588873812755,
+      "macro_precision": 0.7892726858185135,
+      "macro_recall": 0.7482876712328768,
+      "macro_f1": 0.7671773811404201,
+      "weighted_f1": 0.9915485538091195,
+      "per_class": {
+        "0": {
+          "name": "Insult",
+          "precision": 0.9952120383036935,
+          "recall": 0.9965753424657534,
+          "f1": 0.9958932238193019,
+          "support": 1460
+        },
+        "1": {
+          "name": "Defamation",
+          "precision": 0.5833333333333334,
+          "recall": 0.5,
+          "f1": 0.5384615384615384,
+          "support": 14
+        }
+      },
+      "confusion_matrix": [
+        [
+          1455,
+          5
+        ],
+        [
+          7,
+          7
+        ]
+      ],
+      "classification_report": {
+        "Insult": {
+          "precision": 0.9952120383036935,
+          "recall": 0.9965753424657534,
+          "f1-score": 0.9958932238193019,
+          "support": 1460.0
+        },
+        "Defamation": {
+          "precision": 0.5833333333333334,
+          "recall": 0.5,
+          "f1-score": 0.5384615384615384,
+          "support": 14.0
+        },
+        "accuracy": 0.9918588873812755,
+        "macro avg": {
+          "precision": 0.7892726858185135,
+          "recall": 0.7482876712328768,
+          "f1-score": 0.7671773811404201,
+          "support": 1474.0
+        },
+        "weighted avg": {
+          "precision": 0.9913000288942058,
+          "recall": 0.9918588873812755,
+          "f1-score": 0.9915485538091195,
+          "support": 1474.0
+        }
+      },
+      "labels": [
+        0,
+        1
+      ],
+      "label_names": [
+        "Insult",
+        "Defamation"
+      ],
+      "total_support": 1474,
+      "mean_confidence": 0.9986840342569545,
+      "real_only": {
+        "rows": 1474,
+        "defamation_support": 14,
+        "defamation_recall": 0.5,
+        "synthetic_rows_excluded": 0
+      }
+    },
+    "learning_rate": 1.7773279352226722e-05,
+    "optimizer_steps": 438,
+    "skipped_optimizer_steps": 0,
+    "seconds": 600.54
+  },
+  {
+    "epoch": 3,
+    "mean_train_loss": 0.004930026452419507,
+    "validation": {
+      "accuracy": 0.9918588873812755,
+      "macro_precision": 0.7972677595628415,
+      "macro_recall": 0.7129158512720156,
+      "macro_f1": 0.7479480164158687,
+      "weighted_f1": 0.9911860298061984,
+      "per_class": {
+        "0": {
+          "name": "Insult",
+          "precision": 0.994535519125683,
+          "recall": 0.9972602739726028,
+          "f1": 0.9958960328317373,
+          "support": 1460
+        },
+        "1": {
+          "name": "Defamation",
+          "precision": 0.6,
+          "recall": 0.42857142857142855,
+          "f1": 0.5,
+          "support": 14
+        }
+      },
+      "confusion_matrix": [
+        [
+          1456,
+          4
+        ],
+        [
+          8,
+          6
+        ]
+      ],
+      "classification_report": {
+        "Insult": {
+          "precision": 0.994535519125683,
+          "recall": 0.9972602739726028,
+          "f1-score": 0.9958960328317373,
+          "support": 1460.0
+        },
+        "Defamation": {
+          "precision": 0.6,
+          "recall": 0.42857142857142855,
+          "f1-score": 0.5,
+          "support": 14.0
+        },
+        "accuracy": 0.9918588873812755,
+        "macro avg": {
+          "precision": 0.7972677595628415,
+          "recall": 0.7129158512720156,
+          "f1-score": 0.7479480164158687,
+          "support": 1474.0
+        },
+        "weighted avg": {
+          "precision": 0.9907882346835124,
+          "recall": 0.9918588873812755,
+          "f1-score": 0.9911860298061984,
+          "support": 1474.0
+        }
+      },
+      "labels": [
+        0,
+        1
+      ],
+      "label_names": [
+        "Insult",
+        "Defamation"
+      ],
+      "total_support": 1474,
+      "mean_confidence": 0.9995252388545908,
+      "real_only": {
+        "rows": 1474,
+        "defamation_support": 14,
+        "defamation_recall": 0.42857142857142855,
+        "synthetic_rows_excluded": 0
+      }
+    },
+    "learning_rate": 4.048582995951417e-08,
+    "optimizer_steps": 438,
+    "skipped_optimizer_steps": 0,
+    "seconds": 597.92
+  }
+]
